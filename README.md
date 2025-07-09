@@ -209,14 +209,4 @@ The application includes comprehensive sample data:
 4. **QR Code Generation**: Generate pickup codes for smart locker access
 5. **Admin Operations**: Trigger system-wide operations and monitor performance
 
-## 🏆 Hackathon Highlights
 
-- **Walmart Design**: Clean, professional UI matching Walmart's brand
-- **Real Algorithms**: Haversine distance, demand forecasting, route optimization
-- **Scalable Architecture**: Modular design ready for production deployment
-- **Live Data**: All features use dynamic database queries, no hardcoded values
-- **Mobile Responsive**: Works perfectly on all device sizes
-
-## 📝 License
-
-This project was created for the Walmart Hackathon 2024.
