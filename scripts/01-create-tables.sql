@@ -108,6 +108,8 @@ CREATE TABLE IF NOT EXISTS locker_pickups (
     compartment_number INTEGER NOT NULL,
     pickup_code VARCHAR(10) NOT NULL,
     qr_code TEXT,
+    otp_code VARCHAR(6) NOT NULL,
+    otp_verified BOOLEAN DEFAULT false,
     is_picked_up BOOLEAN DEFAULT false,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
