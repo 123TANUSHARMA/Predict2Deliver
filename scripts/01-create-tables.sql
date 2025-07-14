@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS customers (
     address TEXT NOT NULL,
     latitude DECIMAL(10, 8) NOT NULL,
     longitude DECIMAL(11, 8) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    phone varchar(20) NOT NULL
 );
 
 -- Orders table
