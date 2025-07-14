@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Map, MapPin, Truck, Clock, RefreshCw, Navigation } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
+import dynamic from "next/dynamic"
 
 interface DeliveryRoute {
   id: string
@@ -47,6 +48,8 @@ interface RouteFromAPI {
     }
   }>
 }
+
+const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { ssr: false })
 
 export default function DeliveryPage() {
   const [routes, setRoutes] = useState<DeliveryRoute[]>([])
@@ -203,6 +206,17 @@ export default function DeliveryPage() {
   }
 
   useEffect(() => {
+
+    (async () => {
+      const L = (await import("leaflet")).default
+      // @ts-ignore
+      delete L.Icon.Default.prototype._getIconUrl
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "/marker-icon-2x.png",
+        iconUrl: "/marker-icon.png",
+        shadowUrl: "/marker-shadow.png",
+      })
+    })()
     fetchRoutes()
   }, [])
 
@@ -427,13 +441,17 @@ export default function DeliveryPage() {
                 </div>
 
                 {/* Map Placeholder */}
-                <div className="bg-gray-100 rounded-lg p-8 text-center">
-                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Interactive map would be displayed here</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Integration with Leaflet.js or Mapbox for route visualization
-                  </p>
-                </div>
+                {selectedRoute.stops.length > 0 ? (
+                  <DeliveryMap stops={selectedRoute.stops} />
+                ) : (
+                  <div className="bg-gray-100 rounded-lg p-8 text-center">
+                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">Interactive map would be displayed here</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Integration with Leaflet.js or Mapbox for route visualization
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-12">
