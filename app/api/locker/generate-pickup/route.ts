@@ -5,13 +5,127 @@ import twilio from "twilio"
 
 export async function POST(request: Request) {
   try {
-    const { order_id } = await request.json()
+    const { order_id, otp_code, compartment_number, action } = await request.json()
 
+    const supabase = createServerClient()
+
+    // Handle OTP verification and locker opening
+    if (action === "verify_otp") {
+      if (!otp_code || !compartment_number) {
+        return NextResponse.json({ 
+          error: "OTP code and compartment number are required" 
+        }, { status: 400 })
+      }
+
+      // Find the pickup record with the provided OTP and compartment
+      const { data: pickup, error: pickupError } = await supabase
+        .from("locker_pickups")
+        .select(`
+          *,
+          orders!inner (
+            id,
+            status,
+            customer_id,
+            customers!inner (name, phone)
+          ),
+          smart_lockers!inner (
+            id,
+            location_name,
+            address,
+            available_compartments,
+            total_compartments
+          )
+        `)
+        .eq("otp_code", otp_code)
+        .eq("compartment_number", compartment_number)
+        .eq("is_picked_up", false)
+        .single()
+
+      if (pickupError || !pickup) {
+        return NextResponse.json({ 
+          error: "Invalid OTP or compartment number" 
+        }, { status: 400 })
+      }
+
+      // Type assertion to handle Supabase typing issues
+      const orderData = pickup.orders as any
+      const customerData = orderData.customers as any
+      const lockerData = pickup.smart_lockers as any
+
+      // Check if OTP has expired (assuming 10 minutes validity)
+      const otpExpiry = new Date(pickup.created_at)
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10)
+      
+      if (new Date() > otpExpiry) {
+        return NextResponse.json({ 
+          error: "OTP has expired. Please request a new one." 
+        }, { status: 400 })
+      }
+
+      // Check if pickup has expired
+      if (new Date() > new Date(pickup.expires_at)) {
+        return NextResponse.json({ 
+          error: "Pickup has expired" 
+        }, { status: 400 })
+      }
+
+      // Mark pickup as completed and OTP as verified
+      const { error: updatePickupError } = await supabase
+        .from("locker_pickups")
+        .update({ 
+          is_picked_up: true,
+          otp_verified: true
+        })
+        .eq("id", pickup.id)
+
+      if (updatePickupError) {
+        return NextResponse.json({ 
+          error: "Failed to update pickup status" 
+        }, { status: 500 })
+      }
+
+      // Update locker availability (increase available compartments)
+      const { error: updateLockerError } = await supabase
+        .from("smart_lockers")
+        .update({
+          available_compartments: lockerData.available_compartments + 1
+        })
+        .eq("id", pickup.locker_id)
+
+      if (updateLockerError) {
+        return NextResponse.json({ 
+          error: "Failed to update locker availability" 
+        }, { status: 500 })
+      }
+
+      // Update order status to completed
+      const { error: updateOrderError } = await supabase
+        .from("orders")
+        .update({ status: "completed" })
+        .eq("id", pickup.order_id)
+
+      if (updateOrderError) {
+        return NextResponse.json({ 
+          error: "Failed to update order status" 
+        }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Locker opened successfully! Your order is now complete.",
+        pickup: {
+          id: pickup.id,
+          compartment_number: pickup.compartment_number,
+          locker_name: lockerData.location_name,
+          customer_name: customerData.name
+        }
+      })
+    }
+
+    // Original locker assignment logic (existing POST functionality)
     if (!order_id) {
       return NextResponse.json({ error: "Order ID is required" }, { status: 400 })
     }
-
-    const supabase = createServerClient()
 
     const { data: order } = await supabase
       .from("orders")
@@ -116,8 +230,8 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    console.error("Locker pickup generation error:", error)
-    return NextResponse.json({ error: "Failed to generate locker pickup" }, { status: 500 })
+    console.error("Locker pickup error:", error)
+    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
   }
 }
 
@@ -125,65 +239,130 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const orderId = searchParams.get("order_id")
   const pickupId = searchParams.get("pickup_id")
+  const qrCode = searchParams.get("qr_code")
 
   const supabase = createServerClient()
 
-  // Handle OTP send request
-  if (pickupId) {
+  // Handle QR code scan and OTP send
+if (qrCode) {
+  try {
+    // Parse QR code data
+    const qrData = JSON.parse(qrCode)
+    const { order_id, locker_id, compartment, code, expires } = qrData
+
+    console.log("QR Data parsed:", qrData); // DEBUG
+
+    // Check if QR code has expired
+    if (new Date() > new Date(expires)) {
+      return NextResponse.json({ error: "QR code has expired" }, { status: 400 })
+    }
+
+    // Find the pickup record
+    const { data: pickup, error: pickupError } = await supabase
+      .from("locker_pickups")
+      .select(`
+        id,
+        order_id,
+        compartment_number,
+        is_picked_up,
+        orders!inner (
+          customer_id,
+          customers!inner (name, phone)
+        ),
+        smart_lockers!inner (location_name, address)
+      `)
+      .eq("order_id", order_id)
+      .eq("locker_id", locker_id)
+      .eq("compartment_number", compartment)
+      .eq("pickup_code", code)
+      .eq("is_picked_up", false)
+      .single()
+
+    console.log("Pickup query result:", { pickup, pickupError }); // DEBUG
+
+    if (pickupError || !pickup) {
+      return NextResponse.json({ error: "Invalid QR code or pickup already completed" }, { status: 400 })
+    }
+
+    // Type assertion to handle Supabase typing issues
+    const orderData = pickup.orders as any
+    const customerData = orderData.customers as any
+    const lockerData = pickup.smart_lockers as any
+
+    const customerPhone = customerData.phone
+
+    console.log("Customer phone from DB:", customerPhone); // DEBUG
+
+    if (!customerPhone) {
+      return NextResponse.json({ error: "Customer phone number missing" }, { status: 400 })
+    }
+
+    // Generate OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
+    console.log("Generated OTP:", otpCode); // DEBUG
+
+    // Check Twilio credentials
+    console.log("Twilio SID:", process.env.TWILIO_SID ? "Present" : "Missing"); // DEBUG
+    console.log("Twilio Auth Token:", process.env.TWILIO_AUTH_TOKEN ? "Present" : "Missing"); // DEBUG
+    console.log("Twilio Phone Number:", process.env.TWILIO_PHONE_NUMBER); // DEBUG
+
+    // Send OTP via SMS
     try {
-const { data: pickupData, error: pickupError } = await supabase
-  .from("locker_pickups")
-  .select(`
-    id,
-    order_id,
-    orders (
-      customer_id,
-      customers:customers!orders_customer_id_fkey ( phone )
-    )
-  `)
-  .eq("id", pickupId)
-  .single()
-
-
-      if (pickupError || !pickupData) {
-        return NextResponse.json({ error: "Pickup not found" }, { status: 404 })
-      }
-
-const customerPhone = pickupData.orders.customers.phone
-
-      if (!customerPhone) {
-        return NextResponse.json({ error: "Customer phone number missing" }, { status: 400 })
-      }
-
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
-
       const client = twilio(
         process.env.TWILIO_SID!,
         process.env.TWILIO_AUTH_TOKEN!
       )
 
-      await client.messages.create({
-        body: `Your OTP for locker pickup is: ${otpCode}`,
+      console.log("Twilio client created successfully"); // DEBUG
+
+      const message = await client.messages.create({
+        body: `Your OTP for locker pickup at ${lockerData.location_name} is: ${otpCode}. Valid for 10 minutes.`,
         from: process.env.TWILIO_PHONE_NUMBER!,
-        to: customerPhone,
+        to: "+918477812239", // Keep hardcoded for now to test
       })
 
+      console.log("Twilio message sent successfully:", message.sid); // DEBUG
+
+      // Update pickup record with OTP
       const { error: updateError } = await supabase
         .from("locker_pickups")
-        .update({ otp_code: otpCode })
-        .eq("id", pickupId)
+        .update({ 
+          otp_code: otpCode,
+          otp_verified: false
+        })
+        .eq("id", pickup.id)
 
       if (updateError) {
-        return NextResponse.json({ error: "Failed to update OTP in DB" }, { status: 500 })
+        console.log("Database update error:", updateError); // DEBUG
+        return NextResponse.json({ error: "Failed to update OTP in database" }, { status: 500 })
       }
 
-      return NextResponse.json({ success: true, message: "OTP sent to customer" })
-    } catch (error) {
-      console.error("OTP send error:", error)
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-    }
-  }
+      console.log("OTP updated in database successfully"); // DEBUG
 
+      return NextResponse.json({
+        success: true,
+        message: "OTP sent successfully",
+        data: {
+          pickup_id: pickup.id,
+          compartment_number: pickup.compartment_number,
+          locker_name: lockerData.location_name,
+          customer_name: customerData.name
+        }
+      })
+
+    } catch (twilioError) {
+      console.error("Twilio error:", twilioError); // DEBUG
+      return NextResponse.json({ 
+        error: "Failed to send OTP via SMS",
+        details: typeof twilioError === "object" && twilioError !== null && "message" in twilioError ? (twilioError as any).message : String(twilioError)
+      }, { status: 500 })
+    }
+
+  } catch (error) {
+    console.error("QR code processing error:", error)
+    return NextResponse.json({ error: "Invalid QR code format" }, { status: 400 })
+  }
+}
   // Default: fetch locker pickups
   try {
     let query = supabase

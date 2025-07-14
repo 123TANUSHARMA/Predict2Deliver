@@ -10,10 +10,10 @@ import { BarChart3, Package, Truck, MapPin, Settings, Home } from "lucide-react"
 const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "Forecast", href: "/forecast", icon: BarChart3 },
-  { name: "Inventory", href: "/inventory", icon: Package },
+//  { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Delivery", href: "/delivery", icon: Truck },
   { name: "Lockers", href: "/lockers", icon: MapPin },
-  { name: "Admin", href: "/admin", icon: Settings },
+ // { name: "Admin", href: "/admin", icon: Settings },
    { name: "otp form", href: "/verify-pickup", icon: Settings },
 ]
 

@@ -48,15 +48,15 @@ export default function HomePage() {
       {/* Hero Section */}
       <div className="text-center mb-16">
         <Badge variant="secondary" className="mb-4 bg-blue-50 text-[#0071ce] border-blue-200">
-          Walmart Hackathon 2024
         </Badge>
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
           Transform Your
           <span className="text-[#0071ce]"> Supply Chain</span>
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Predict2Deliver.AI revolutionizes retail operations with AI-powered demand forecasting, intelligent inventory
-          management, and optimized last-mile delivery solutions.
+          Predict2Deliver.AI combines intelligent locker logistics, demand forecasting, and route optimization to ensure faster, safer, and smarter last-mile delivery.
+
+
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="bg-[#0071ce] hover:bg-blue-700">
@@ -65,17 +65,17 @@ export default function HomePage() {
               View Demand Forecasts
             </Link>
           </Button>
-          <Button
+     { /*<Button
             asChild
             variant="outline"
             size="lg"
             className="border-[#0071ce] text-[#0071ce] hover:bg-blue-50 bg-transparent"
           >
-            <Link href="/admin">
-              <Settings className="w-5 h-5 mr-2" />
+           <Link href="/admin">
+            <Settings className="w-5 h-5 mr-2" />
               Admin Dashboard
             </Link>
-          </Button>
+          </Button>*/}
         </div>
       </div>
 
