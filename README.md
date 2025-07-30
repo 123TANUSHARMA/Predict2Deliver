@@ -2,13 +2,15 @@
 
 AI-powered retail supply chain optimization platform built for the Walmart Hackathon 2024.
 
+## 🚀 live on
+
+https://predict2-deliver.vercel.app/
+
 ## 🚀 Features
 
 - **AI-Powered Demand Forecasting**: Predict product demand using historical data and smart algorithms
-- **Smart Inventory Management**: Real-time liquidity scoring and intelligent rebalancing
 - **Optimized Delivery Routes**: Bundle orders and create efficient delivery routes
 - **Smart Locker Network**: QR code-based pickup system with automated locker assignment
-- **Admin Dashboard**: Comprehensive system monitoring and operations control
 
 ## 🛠️ Tech Stack
 
