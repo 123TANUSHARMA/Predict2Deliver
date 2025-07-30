@@ -164,7 +164,7 @@ export async function POST(request: Request) {
 
     const pickupCode = generatePickupCode()
 
-    const predictRes = await fetch("http://localhost:8000/predict", {
+    const predictRes = await fetch("https://predict2deliver.onrender.com", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
