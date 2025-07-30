@@ -3,3 +3,5 @@ pydantic
 joblib
 numpy
 uvicorn[standard]
+scikit-learn
+fastapi-sqlalchemy
