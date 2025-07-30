@@ -1,6 +1,6 @@
 # Predict2Deliver.AI
 
-AI-powered retail supply chain optimization platform built for the Walmart Hackathon 2024.
+AI-powered retail supply chain optimization platform.
 
 ## 🚀 live on
 
